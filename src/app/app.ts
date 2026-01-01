@@ -16,9 +16,13 @@ export class App implements OnDestroy, AfterViewInit {
   private analyser: AnalyserNode | null = null;
   private dataArray: Uint8Array | null = null;
   private animationFrameId: number | null = null;
+  private silenceTimeout: any = null;
+  private silenceThreshold = 50; // Audio level threshold for silence
+  private silenceDuration = 2000; // 2 seconds in milliseconds
 
   isExpanded = signal(false);
   isRecording = signal(false);
+  isWaiting = signal(false);
 
   constructor(private elementRef: ElementRef) {}
 
@@ -40,31 +44,13 @@ export class App implements OnDestroy, AfterViewInit {
           console.error('Error accessing microphone:', error);
         }
       } else {
-        if (this.animationFrameId !== null) {
-          cancelAnimationFrame(this.animationFrameId);
-          this.animationFrameId = null;
-        }
-
-        // Close audio context
-        if (this.audioContext) {
-          this.audioContext.close();
-          this.audioContext = null;
-        }
-
-        if (this.mediaStream) {
-          this.mediaStream.getTracks().forEach((track) => track.stop());
-          this.mediaStream = null;
-          this.isRecording.set(false);
-          console.log('Microphone deactivated');
-        }
-
-        // Reset wave animations
-        const waves = this.elementRef.nativeElement.querySelectorAll('[class*="wave"]');
-        waves.forEach((wave: HTMLElement) => {
-          wave.style.removeProperty('--wave-scale');
-        });
+        this.stopRecording();
       }
     });
+    this.ipc.on('reset', () => {
+      this.reset();
+    });
+    this.reset();
   }
 
   private setupAudioAnalysis() {
@@ -96,17 +82,53 @@ export class App implements OnDestroy, AfterViewInit {
       // @ts-ignore
       this.analyser!.getByteFrequencyData(this.dataArray!);
 
+      // Calculate average volume to detect silence
+      const average = this.dataArray!.reduce((a, b) => a + b, 0) / this.dataArray!.length;
+      const isSilent = average < this.silenceThreshold;
+
+      // Handle silence detection
+      if (isSilent) {
+        // Start silence timer if not already started
+        if (!this.silenceTimeout) {
+          console.log('Silence detected, starting timer...');
+          this.silenceTimeout = setTimeout(() => {
+            console.log('2 seconds of silence - stopping recording');
+            this.stopRecording();
+            // Trigger contract animation
+            // this.ipc.send('wait-answer');
+            this.isWaiting.set(true);
+          }, this.silenceDuration);
+        }
+      } else {
+        // Clear silence timer if sound is detected
+        if (this.silenceTimeout) {
+          console.log('Sound detected, clearing silence timer');
+          clearTimeout(this.silenceTimeout);
+          this.silenceTimeout = null;
+        }
+      }
+
       // Get wave elements
       const waves = this.elementRef.nativeElement.querySelectorAll('[class*="wave"]');
 
       // Update each wave based on frequency data
       waves.forEach((wave: HTMLElement, index: number) => {
-        // Map frequency bands to waves (0-6)
-        const dataIndex = Math.floor((index / 7) * this.dataArray!.length);
-        const amplitude = this.dataArray![dataIndex] / 255; // Normalize to 0-1
+        let scaleFactor: number;
 
-        // Update CSS variable for wave height
-        const scaleFactor = 0.5 + amplitude * 1.5; // Range: 0.5 to 2.5
+        if (isSilent) {
+          // When silent, make first and last waves slightly bigger
+          if (index === 0 || index === waves.length - 1) {
+            scaleFactor = 0.7;
+          } else {
+            scaleFactor = 0.5;
+          }
+        } else {
+          // Map frequency bands to waves (0-6)
+          const dataIndex = Math.floor((index / 7) * this.dataArray!.length);
+          const amplitude = this.dataArray![dataIndex] / 255;
+          scaleFactor = 0.5 + amplitude * 1.5;
+        }
+
         wave.style.setProperty('--wave-scale', scaleFactor.toString());
       });
 
@@ -115,8 +137,45 @@ export class App implements OnDestroy, AfterViewInit {
 
     animate();
   }
+
+  private stopRecording() {
+    // Clear silence timeout
+    if (this.silenceTimeout) {
+      clearTimeout(this.silenceTimeout);
+      this.silenceTimeout = null;
+    }
+
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+
+    // Close audio context
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
+
+    if (this.mediaStream) {
+      this.mediaStream.getTracks().forEach((track) => track.stop());
+      this.mediaStream = null;
+      this.isRecording.set(false);
+      console.log('Microphone deactivated');
+    }
+
+    // Reset wave animations
+    const waves = this.elementRef.nativeElement.querySelectorAll('[class*="wave"]');
+    waves.forEach((wave: HTMLElement) => {
+      wave.style.removeProperty('--wave-scale');
+    });
+  }
+
   ngOnDestroy() {
     // Cleanup on component destroy
+    if (this.silenceTimeout) {
+      clearTimeout(this.silenceTimeout);
+    }
+
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
     }
@@ -128,5 +187,10 @@ export class App implements OnDestroy, AfterViewInit {
     if (this.mediaStream) {
       this.mediaStream.getTracks().forEach((track) => track.stop());
     }
+  }
+  reset() {
+    this.isWaiting.set(false);
+    this.isRecording.set(false);
+    this.isExpanded.set(false);
   }
 }

@@ -1,4 +1,6 @@
 const { app, BrowserWindow, screen, globalShortcut, systemPreferences } = require('electron');
+const EXPANDED = { width: 270, height: 120 };
+const CONTRACTED = { width: 180, height: 30 };
 function animateWindowBounds(win, targetBounds, duration = 300, easing = [0.4, 0.0, 0.2, 1]) {
   const startBounds = win.getBounds();
   const startTime = Date.now();
@@ -44,10 +46,10 @@ function createDynamicIsland() {
     primaryDisplay.bounds.width === 1728 ||
     primaryDisplay.bounds.width === 3024 ||
     primaryDisplay.bounds.width === 3456;
-  const defaultHeight = hasNotch ? 30 : 1;
+  const defaultHeight = hasNotch ? CONTRACTED.height : 1;
 
   const win = new BrowserWindow({
-    width: 180, // Starting width of your island
+    width: CONTRACTED.width, // Starting width of your island
     height: defaultHeight, // Starting height
     x: width / 2 - 100, // Center it horizontally
     y: 0, // Stick it to the very top
@@ -76,7 +78,12 @@ function createDynamicIsland() {
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 
   // This allows the window to sit in the "dead zone" of the notch
-  win.setBounds({ x: Math.floor(width / 2 - 100), y: 0, width: 180, height: defaultHeight });
+  win.setBounds({
+    x: Math.floor(width / 2 - 100),
+    y: 0,
+    width: CONTRACTED.width,
+    height: defaultHeight,
+  });
 
   // win.webContents.openDevTools({ mode: 'detach' });
   // This makes the transparent parts of your window click-through
@@ -103,6 +110,15 @@ function createDynamicIsland() {
       [0.4, 0.0, 0.2, 1]
     ); // Material Design standard easing
   });
+  // ipcMain.on('wait-answer', () => {
+  //   const x = Math.floor(width / 2 - EXPANDED.width / 2);
+  //   animateWindowBounds(
+  //     win,
+  //     { width: EXPANDED.width, height: EXPANDED.height - 20, x: x, y: 0 },
+  //     300,
+  //     [0.34, 1.56, 1, 1]
+  //   );
+  // });
   // win.on('blur', () => {
   //   win.setBounds({ width: 200, height: 30, x: center, y: 0 }, true);
   // });
@@ -122,12 +138,13 @@ function createDynamicIsland() {
         [0.34, 1.56, 1, 1]
       );
       isExpanded = false;
+      win.webContents.send('reset');
     } else {
       // Expand
       const x = Math.floor(width / 2 - 270 / 2);
       animateWindowBounds(
         win,
-        { width: 270, height: hasNotch ? 200 : 120, x: x, y: 0 },
+        { width: EXPANDED.width, height: hasNotch ? EXPANDED.height : 120, x: x, y: 0 },
         400,
         [0.34, 1.56, 1, 1]
       );

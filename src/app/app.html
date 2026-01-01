@@ -1,6 +1,10 @@
 <div class="island-body">
-  <div class="pulse"><h2>RD</h2></div>
-  <section class="audio-waves">
+  <div
+    [ngClass]="{ pulse: !isWaiting(), loader: isWaiting() }"
+    [ngStyle]="{ opacity: isWaiting() ? '0.5' : '1' }"
+  ></div>
+  <h2 class="assistant-name">RD</h2>
+  <section class="audio-waves" [ngStyle]="{ opacity: isWaiting() ? '0.5' : '1' }">
     <div class="wave0"></div>
     <div class="wave1"></div>
     <div class="wave2"></div>
