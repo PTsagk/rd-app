@@ -125,7 +125,12 @@ function createDynamicIsland() {
     } else {
       // Expand
       const x = Math.floor(width / 2 - 270 / 2);
-      animateWindowBounds(win, { width: 270, height: 100, x: x, y: 0 }, 400, [0.34, 1.56, 1, 1]);
+      animateWindowBounds(
+        win,
+        { width: 270, height: hasNotch ? 200 : 120, x: x, y: 0 },
+        400,
+        [0.34, 1.56, 1, 1]
+      );
       isExpanded = true;
     }
     win.webContents.send('toggle-expand', isExpanded);
