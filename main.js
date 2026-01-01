@@ -1,4 +1,4 @@
-const { app, BrowserWindow, screen, globalShortcut } = require('electron');
+const { app, BrowserWindow, screen, globalShortcut, systemPreferences } = require('electron');
 function animateWindowBounds(win, targetBounds, duration = 300, easing = [0.4, 0.0, 0.2, 1]) {
   const startBounds = win.getBounds();
   const startTime = Date.now();
@@ -66,6 +66,11 @@ function createDynamicIsland() {
     thickFrame: false,
   });
 
+  if (process.platform === 'darwin') {
+    systemPreferences.askForMediaAccess('microphone').then((granted) => {
+      console.log('Microphone access:', granted ? 'granted' : 'denied');
+    });
+  }
   // CRITICAL: This allows the window to overlap the Menu Bar/Notch
   win.setAlwaysOnTop(true, 'screen-saver');
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
@@ -119,10 +124,11 @@ function createDynamicIsland() {
       isExpanded = false;
     } else {
       // Expand
-      const x = Math.floor(width / 2 - 420 / 2);
-      animateWindowBounds(win, { width: 420, height: 180, x: x, y: 0 }, 400, [0.34, 1.56, 1, 1]);
+      const x = Math.floor(width / 2 - 270 / 2);
+      animateWindowBounds(win, { width: 270, height: 100, x: x, y: 0 }, 400, [0.34, 1.56, 1, 1]);
       isExpanded = true;
     }
+    win.webContents.send('toggle-expand', isExpanded);
   });
 
   return win;
