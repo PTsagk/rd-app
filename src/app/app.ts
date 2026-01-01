@@ -33,7 +33,7 @@ export class App {
 
   expand() {
     // Width: 400px, Height: 120px when hovering
-    this.ipc.send('resize-island', { width: 420, height: 220 });
+    this.ipc.send('resize-island', { width: 420, height: 180 });
     this.isExpanded.set(true);
     console.log('Expanding island');
   }
