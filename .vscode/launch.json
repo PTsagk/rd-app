@@ -3,21 +3,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "ng serve",
-      "type": "chrome",
-      "request": "launch",
-      "preLaunchTask": "npm: start",
-      "url": "http://localhost:4200/"
-    },
-    {
-      "name": "ng test",
-      "type": "chrome",
-      "request": "launch",
-      "preLaunchTask": "npm: test",
-      "url": "http://localhost:9876/debug.html"
-    },
-    {
-      "name": "Electron: Main",
+      "name": "Main",
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}",
@@ -31,7 +17,7 @@
       "console": "integratedTerminal"
     },
     {
-      "name": "Electron: Renderer",
+      "name": "Renderer",
       "type": "chrome",
       "request": "attach",
       "port": 9223,
@@ -39,7 +25,7 @@
       "timeout": 30000
     },
     {
-      "name": "Electron: All",
+      "name": "All",
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}",
@@ -57,13 +43,32 @@
         "uriFormat": "%s",
         "webRoot": "${workspaceFolder}"
       }
+    },
+    {
+      "name": "Backend",
+      "type": "node",
+      "request": "launch",
+      "runtimeArgs": ["-r", "ts-node/register"],
+      "args": ["${workspaceFolder}/backend/src/app.ts"],
+      "cwd": "${workspaceFolder}/backend",
+      "protocol": "inspector",
+      "sourceMaps": true,
+      "outFiles": ["${workspaceFolder}/backend/dist/**/*.js"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
     }
   ],
   "compounds": [
     {
-      "name": "Electron: Main + Renderer",
-      "configurations": ["Electron: Main", "Electron: Renderer"],
+      "name": "Main + Renderer",
+      "configurations": ["Main", "Renderer"],
       "stopAll": true
+    },
+    {
+      "name": "Full Stack: All",
+      "configurations": ["Backend", "Main", "Renderer"],
+      "stopAll": true,
+      "preLaunchTask": "npm: start"
     }
   ]
 }
