@@ -106,8 +106,8 @@ function createDynamicIsland() {
         x: x,
         y: 0,
       },
-      1000,
-      [0.4, 0.0, 0.2, 1]
+      400,
+      [0.34, 1.56, 1, 1]
     ); // Material Design standard easing
   });
   // ipcMain.on('wait-answer', () => {

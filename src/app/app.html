@@ -1,17 +1,32 @@
-<div class="island-body">
+<div class="island-body" [ngStyle]="{ height: islandHeight() + 'px' }">
   <div
-    [ngClass]="{ pulse: !isWaiting(), loader: isWaiting() }"
-    [ngStyle]="{ opacity: isWaiting() ? '0.5' : '1' }"
-  ></div>
-  <h2 class="assistant-name">RD</h2>
-  <section class="audio-waves" [ngStyle]="{ opacity: isWaiting() ? '0.5' : '1' }">
-    <div class="wave0"></div>
-    <div class="wave1"></div>
-    <div class="wave2"></div>
-    <div class="wave3"></div>
-    <div class="wave4"></div>
-    <div class="wave5"></div>
-    <div class="wave6"></div>
-  </section>
+    style="
+      width: 100%;
+      display: flex;
+      align-items: center;
+
+      position: relative;
+    "
+  >
+    <div
+      [ngClass]="{ pulse: !isWaiting(), loader: isWaiting() }"
+      [ngStyle]="{ opacity: isWaiting() ? '0.5' : '1' }"
+    ></div>
+    <h2 class="assistant-name">RD</h2>
+    <section class="audio-waves" [ngStyle]="{ opacity: isWaiting() ? '0.5' : '1' }">
+      <div class="wave0"></div>
+      <div class="wave1"></div>
+      <div class="wave2"></div>
+      <div class="wave3"></div>
+      <div class="wave4"></div>
+      <div class="wave5"></div>
+      <div class="wave6"></div>
+    </section>
+  </div>
+  @if (modelResponse() !== null) {
+  <div class="model-response">{{ modelResponse() }}</div>
+  <!-- <div class="model-response">
+    This is a sample response of the model to view in the dynamic island
+  </div> -->
+  }
 </div>
-<app-chat></app-chat>

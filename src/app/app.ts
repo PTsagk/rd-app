@@ -1,7 +1,8 @@
 import { NgClass, NgStyle } from '@angular/common';
 import { Component, signal, OnDestroy, ElementRef, AfterViewInit } from '@angular/core';
 import { Chat } from './components/chat/chat';
-import { InferenceClient } from '@huggingface/inference';
+import { ApiService } from './services/api.service';
+
 @Component({
   selector: 'app-root',
   imports: [NgStyle, NgClass, Chat],
@@ -18,13 +19,17 @@ export class App implements OnDestroy, AfterViewInit {
   private animationFrameId: number | null = null;
   private silenceTimeout: any = null;
   private silenceThreshold = 50; // Audio level threshold for silence
-  private silenceDuration = 2000; // 2 seconds in milliseconds
+  private silenceDuration = 3000; // 3 seconds in milliseconds
+  private mediaRecorder: MediaRecorder | null = null;
+  private audioChunks: Blob[] = [];
 
   isExpanded = signal(false);
   isRecording = signal(false);
   isWaiting = signal(false);
+  islandHeight = signal(120);
+  modelResponse = signal<string | null>(null);
 
-  constructor(private elementRef: ElementRef) {}
+  constructor(private elementRef: ElementRef, private api: ApiService) {}
 
   async ngAfterViewInit() {
     // Initialize after view is ready
@@ -40,6 +45,9 @@ export class App implements OnDestroy, AfterViewInit {
 
           // Set up audio analysis
           this.setupAudioAnalysis();
+
+          // Start recording
+          this.startRecording();
         } catch (error) {
           console.error('Error accessing microphone:', error);
         }
@@ -71,6 +79,22 @@ export class App implements OnDestroy, AfterViewInit {
 
     // Start animation loop
     this.animateWaves();
+  }
+
+  private startRecording() {
+    if (!this.mediaStream) return;
+
+    this.audioChunks = [];
+    this.mediaRecorder = new MediaRecorder(this.mediaStream);
+
+    this.mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        this.audioChunks.push(event.data);
+      }
+    };
+
+    this.mediaRecorder.start();
+    console.log('MediaRecorder started');
   }
 
   private animateWaves() {
@@ -150,6 +174,12 @@ export class App implements OnDestroy, AfterViewInit {
       this.animationFrameId = null;
     }
 
+    // Stop MediaRecorder
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      this.mediaRecorder.stop();
+      console.log('MediaRecorder stopped');
+    }
+
     // Close audio context
     if (this.audioContext) {
       this.audioContext.close();
@@ -157,7 +187,10 @@ export class App implements OnDestroy, AfterViewInit {
     }
 
     if (this.mediaStream) {
-      this.speechToText();
+      // Process audio after stopping
+      setTimeout(() => {
+        this.speechToText();
+      }, 100);
 
       this.mediaStream.getTracks().forEach((track) => track.stop());
       this.mediaStream = null;
@@ -182,6 +215,10 @@ export class App implements OnDestroy, AfterViewInit {
       cancelAnimationFrame(this.animationFrameId);
     }
 
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      this.mediaRecorder.stop();
+    }
+
     if (this.audioContext) {
       this.audioContext.close();
     }
@@ -194,9 +231,125 @@ export class App implements OnDestroy, AfterViewInit {
     this.isWaiting.set(false);
     this.isRecording.set(false);
     this.isExpanded.set(false);
+    this.modelResponse.set(null);
+  }
+
+  private async convertToWav(audioBlob: Blob): Promise<string> {
+    const arrayBuffer = await audioBlob.arrayBuffer();
+    const audioContext = new AudioContext();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+    // Get audio data
+    const numberOfChannels = audioBuffer.numberOfChannels;
+    const sampleRate = audioBuffer.sampleRate;
+    const length = audioBuffer.length * numberOfChannels * 2;
+
+    // Create WAV buffer
+    const buffer = new ArrayBuffer(44 + length);
+    const view = new DataView(buffer);
+
+    // Write WAV header
+    const writeString = (offset: number, string: string) => {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    };
+
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + length, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, numberOfChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * numberOfChannels * 2, true);
+    view.setUint16(32, numberOfChannels * 2, true);
+    view.setUint16(34, 16, true);
+    writeString(36, 'data');
+    view.setUint32(40, length, true);
+
+    // Write PCM samples
+    const channels = [];
+    for (let i = 0; i < numberOfChannels; i++) {
+      channels.push(audioBuffer.getChannelData(i));
+    }
+
+    let offset = 44;
+    for (let i = 0; i < audioBuffer.length; i++) {
+      for (let channel = 0; channel < numberOfChannels; channel++) {
+        const sample = Math.max(-1, Math.min(1, channels[channel][i]));
+        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+        offset += 2;
+      }
+    }
+
+    const wavBlob = new Blob([buffer], { type: 'audio/wav' });
+    const base64 = await this.blobToBase64(wavBlob);
+
+    return base64;
+  }
+
+  private blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = (reader.result as string).split(',')[1];
+        resolve(base64String);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
   }
 
   async speechToText() {
-    // this.reset();
+    if (this.audioChunks.length === 0) {
+      console.error('No audio chunks recorded');
+      this.reset();
+      return;
+    }
+
+    const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+    console.log('Audio blob size:', audioBlob.size);
+
+    try {
+      const base64Audio = await this.convertToWav(audioBlob);
+      console.log('Audio converted to WAV and encoded to base64');
+
+      this.api
+        .post('/openai/chat', {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'input_audio',
+                  input_audio: {
+                    data: base64Audio,
+                    format: 'wav',
+                  },
+                },
+              ],
+            },
+          ],
+        })
+        .subscribe({
+          next: (response: any) => {
+            console.log('OpenAI response:', response);
+            this.modelResponse.set(response);
+            this.isWaiting.set(false);
+            this.ipc.send('resize-island', { width: 400, height: 180 });
+            this.islandHeight.set(180);
+            // this.reset();
+          },
+          error: (error) => {
+            console.error('Error sending audio to OpenAI:', error);
+            this.reset();
+          },
+        });
+    } catch (error) {
+      console.error('Error converting audio to WAV:', error);
+      this.reset();
+    }
   }
 }
