@@ -36,29 +36,35 @@ export class App implements OnDestroy, AfterViewInit {
     this.ipc.on('toggle-expand', async (event: any, expand: boolean) => {
       this.isExpanded.set(expand);
       console.log('Toggling expand:', expand);
-      if (this.isExpanded()) {
-        try {
-          console.log('Requesting microphone access');
-          this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          this.isRecording.set(true);
-          console.log('Microphone activated');
-
-          // Set up audio analysis
-          this.setupAudioAnalysis();
-
-          // Start recording
-          this.startRecording();
-        } catch (error) {
-          console.error('Error accessing microphone:', error);
-        }
-      } else {
+      if (!this.isExpanded()) {
         this.stopRecording();
       }
     });
     this.ipc.on('reset', () => {
       this.reset();
     });
+    this.ipc.on('new-recording', () => {
+      this.startRecordingProcess();
+    });
+
     this.reset();
+  }
+
+  private async startRecordingProcess() {
+    try {
+      console.log('Requesting microphone access');
+      this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.isRecording.set(true);
+      console.log('Microphone activated');
+
+      // Set up audio analysis
+      this.setupAudioAnalysis();
+
+      // Start recording
+      this.startRecording();
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+    }
   }
 
   private setupAudioAnalysis() {

@@ -130,15 +130,16 @@ function createDynamicIsland() {
     console.log('Global shortcut triggered');
     if (isExpanded) {
       // Contract
-      const x = Math.floor(width / 2 - 180 / 2);
-      animateWindowBounds(
-        win,
-        { width: 180, height: defaultHeight, x: x, y: 0 },
-        400,
-        [0.34, 1.56, 1, 1]
-      );
-      isExpanded = false;
-      win.webContents.send('reset');
+      // const x = Math.floor(width / 2 - 180 / 2);
+      // animateWindowBounds(
+      //   win,
+      //   { width: 180, height: defaultHeight, x: x, y: 0 },
+      //   400,
+      //   [0.34, 1.56, 1, 1]
+      // );
+      // isExpanded = false;
+      // win.webContents.send('reset');
+      win.webContents.send('new-recording');
     } else {
       // Expand
       const x = Math.floor(width / 2 - 270 / 2);
@@ -149,9 +150,22 @@ function createDynamicIsland() {
         [0.34, 1.56, 1, 1]
       );
       isExpanded = true;
+      win.webContents.send('toggle-expand', isExpanded);
     }
-    win.webContents.send('toggle-expand', isExpanded);
   });
+  // globalShortcut.register('CommandOrControl+P', () => {
+  //   if (isExpanded) {
+  //     const x = Math.floor(width / 2 - 180 / 2);
+  //     animateWindowBounds(
+  //       win,
+  //       { width: 180, height: defaultHeight, x: x, y: 0 },
+  //       400,
+  //       [0.34, 1.56, 1, 1]
+  //     );
+  //     isExpanded = false;
+  //     win.webContents.send('reset');
+  //   }
+  // });
 
   return win;
 }
