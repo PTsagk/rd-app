@@ -2,7 +2,7 @@ import { NgClass, NgStyle } from '@angular/common';
 import { Component, signal, OnDestroy, ElementRef, AfterViewInit } from '@angular/core';
 import { Chat } from './components/chat/chat';
 import { ApiService } from './services/api.service';
-
+import { marked } from 'marked';
 @Component({
   selector: 'app-root',
   imports: [NgStyle, NgClass, Chat],
@@ -46,8 +46,6 @@ export class App implements OnDestroy, AfterViewInit {
     this.ipc.on('new-recording', () => {
       this.startRecordingProcess();
     });
-
-    this.reset();
   }
 
   private async startRecordingProcess() {
@@ -238,6 +236,8 @@ export class App implements OnDestroy, AfterViewInit {
     this.isRecording.set(false);
     this.isExpanded.set(false);
     this.modelResponse.set(null);
+    this.stopRecording();
+    this.islandHeight.set(120);
   }
 
   private async convertToWav(audioBlob: Blob): Promise<string> {
@@ -342,10 +342,14 @@ export class App implements OnDestroy, AfterViewInit {
         .subscribe({
           next: (response: any) => {
             console.log('OpenAI response:', response);
+            response = marked(response);
             this.modelResponse.set(response);
             this.isWaiting.set(false);
-            this.ipc.send('resize-island', { width: 400, height: 180 });
-            this.islandHeight.set(180);
+            this.ipc.send('resize-island', {
+              width: 600,
+              height: response.length / 2 < 200 ? 200 : response.length / 2,
+            });
+            this.islandHeight.set(response.length / 2 < 200 ? 200 : response.length / 2);
             // this.reset();
           },
           error: (error) => {

@@ -24,7 +24,7 @@
     </section>
   </div>
   @if (modelResponse() !== null) {
-  <div class="model-response">{{ modelResponse() }}</div>
+  <div class="model-response" [innerHTML]="modelResponse()"></div>
   <!-- <div class="model-response">
     This is a sample response of the model to view in the dynamic island
   </div> -->

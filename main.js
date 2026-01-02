@@ -153,19 +153,19 @@ function createDynamicIsland() {
       win.webContents.send('toggle-expand', isExpanded);
     }
   });
-  // globalShortcut.register('CommandOrControl+P', () => {
-  //   if (isExpanded) {
-  //     const x = Math.floor(width / 2 - 180 / 2);
-  //     animateWindowBounds(
-  //       win,
-  //       { width: 180, height: defaultHeight, x: x, y: 0 },
-  //       400,
-  //       [0.34, 1.56, 1, 1]
-  //     );
-  //     isExpanded = false;
-  //     win.webContents.send('reset');
-  //   }
-  // });
+  globalShortcut.register('CommandOrControl+Q', () => {
+    if (isExpanded) {
+      const x = Math.floor(width / 2 - 180 / 2);
+      animateWindowBounds(
+        win,
+        { width: 180, height: defaultHeight, x: x, y: 0 },
+        400,
+        [0.34, 1.56, 1, 1]
+      );
+      isExpanded = false;
+      win.webContents.send('reset');
+    }
+  });
 
   return win;
 }
