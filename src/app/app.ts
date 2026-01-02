@@ -1,7 +1,7 @@
 import { NgClass, NgStyle } from '@angular/common';
 import { Component, signal, OnDestroy, ElementRef, AfterViewInit } from '@angular/core';
 import { Chat } from './components/chat/chat';
-
+import { InferenceClient } from '@huggingface/inference';
 @Component({
   selector: 'app-root',
   imports: [NgStyle, NgClass, Chat],
@@ -157,6 +157,8 @@ export class App implements OnDestroy, AfterViewInit {
     }
 
     if (this.mediaStream) {
+      this.speechToText();
+
       this.mediaStream.getTracks().forEach((track) => track.stop());
       this.mediaStream = null;
       this.isRecording.set(false);
@@ -192,5 +194,9 @@ export class App implements OnDestroy, AfterViewInit {
     this.isWaiting.set(false);
     this.isRecording.set(false);
     this.isExpanded.set(false);
+  }
+
+  async speechToText() {
+    // this.reset();
   }
 }

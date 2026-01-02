@@ -85,7 +85,7 @@ function createDynamicIsland() {
     height: defaultHeight,
   });
 
-  // win.webContents.openDevTools({ mode: 'detach' });
+  win.webContents.openDevTools({ mode: 'detach' });
   // This makes the transparent parts of your window click-through
   // win.setIgnoreMouseEvents(true, { forward: true });
   const { ipcMain } = require('electron');
