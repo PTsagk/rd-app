@@ -1,5 +1,5 @@
 const { app, BrowserWindow, screen, globalShortcut, systemPreferences } = require('electron');
-const { getUIElements, clickByTitle } = require('./accessibility.js');
+
 const EXPANDED = { width: 270, height: 120 };
 const CONTRACTED = { width: 180, height: 30 };
 function animateWindowBounds(win, targetBounds, duration = 300, easing = [0.4, 0.0, 0.2, 1]) {
@@ -150,17 +150,6 @@ function createDynamicIsland() {
       console.error('❌ Accessibility permission NOT granted');
       return;
     }
-
-    console.log('✅ Attempting to get UI elements...');
-    getUIElements()
-      .then((elements) => {
-        console.log('✅ UI Elements count:', elements.length);
-        console.log('UI Elements:', elements);
-      })
-      .catch((err) => {
-        console.error('❌ Error fetching UI elements:', err);
-        console.error('Error stack:', err.stack);
-      });
 
     console.log('Global shortcut triggered');
 
