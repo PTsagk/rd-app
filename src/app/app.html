@@ -1,13 +1,5 @@
 <div class="island-body" [ngStyle]="{ height: islandHeight() + 'px' }">
-  <div
-    style="
-      width: 100%;
-      display: flex;
-      align-items: center;
-
-      position: relative;
-    "
-  >
+  <div style="width: 100%; display: flex; align-items: center; position: relative">
     <div
       [ngClass]="{ pulse: !isWaiting(), loader: isWaiting() }"
       [ngStyle]="{ opacity: isWaiting() ? '0.5' : '1' }"
@@ -24,7 +16,11 @@
     </section>
   </div>
   @if (modelResponse() !== null) {
-  <div class="model-response" [innerHTML]="modelResponse()"></div>
+  <div
+    class="model-response"
+    [ngStyle]="{ height: islandHeight() - 115 + 'px' }"
+    [innerHTML]="modelResponse()"
+  ></div>
   <!-- <div class="model-response">
     This is a sample response of the model to view in the dynamic island
   </div> -->
