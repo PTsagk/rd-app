@@ -1,4 +1,5 @@
 const { app, BrowserWindow, screen, globalShortcut, systemPreferences } = require('electron');
+const { getUIElements, clickByTitle } = require('./accessibility.js');
 const EXPANDED = { width: 270, height: 120 };
 const CONTRACTED = { width: 180, height: 30 };
 function animateWindowBounds(win, targetBounds, duration = 300, easing = [0.4, 0.0, 0.2, 1]) {
@@ -72,6 +73,17 @@ function createDynamicIsland() {
     systemPreferences.askForMediaAccess('microphone').then((granted) => {
       console.log('Microphone access:', granted ? 'granted' : 'denied');
     });
+
+    // Check if accessibility is already trusted
+    const isTrusted = systemPreferences.isTrustedAccessibilityClient(false);
+    console.log('Accessibility access:', isTrusted ? 'granted' : 'denied/pending');
+
+    // If not trusted, prompt for access
+    if (!isTrusted) {
+      console.log('Requesting accessibility permission...');
+      systemPreferences.isTrustedAccessibilityClient(true);
+      console.log('Please grant accessibility permission in System Settings and restart the app');
+    }
   }
   // CRITICAL: This allows the window to overlap the Menu Bar/Notch
   win.setAlwaysOnTop(true, 'screen-saver');
@@ -127,7 +139,31 @@ function createDynamicIsland() {
   // Register global keyboard shortcut
   let isExpanded = false;
   globalShortcut.register('CommandOrControl+R', () => {
+    // Add detailed logging
+    const isTrusted = systemPreferences.isTrustedAccessibilityClient(false);
+    console.log('=== Accessibility Debug ===');
+    console.log('Platform:', process.platform);
+    console.log('Trusted status:', isTrusted);
+    console.log('App name:', app.getName());
+
+    if (!isTrusted) {
+      console.error('❌ Accessibility permission NOT granted');
+      return;
+    }
+
+    console.log('✅ Attempting to get UI elements...');
+    getUIElements()
+      .then((elements) => {
+        console.log('✅ UI Elements count:', elements.length);
+        console.log('UI Elements:', elements);
+      })
+      .catch((err) => {
+        console.error('❌ Error fetching UI elements:', err);
+        console.error('Error stack:', err.stack);
+      });
+
     console.log('Global shortcut triggered');
+
     if (isExpanded) {
       // Contract
       // const x = Math.floor(width / 2 - 180 / 2);
